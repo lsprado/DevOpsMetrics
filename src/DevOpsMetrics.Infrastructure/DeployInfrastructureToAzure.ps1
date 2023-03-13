@@ -1,24 +1,25 @@
 ﻿# az login
 # az account set --subscription 65b8d298-e5bd-4735-912e-8b9c510c4e00
 CLS
-$resourceGroupName="devopsmetrics"
+$resourceGroupName="rg-dorametrics"
 $resourceLocation="eastus"
-$keyVaultName="devops-prod-eu-vault"
-$storageName="devopsprodeustorage"
-$hostingName="devops-prod-eu-hosting"
-$appInsightsName="devops-prod-eu-appinsights"
-$serviceName="devops-prod-eu-service"
-$websiteName="devops-prod-eu-web"
-$functionName="devops-prod-eu-function"
-$administrationEmailAccount="samsmithnz_gmail.com#EXT#@samsmithnzgmail.onmicrosoft.com"
-$fileRoot = "C:\Users\samsm\source\repos\DevOpsMetrics\src"
+$keyVaultName="kv-dorametrics"
+$storageName="strdorametrics"
+$hostingName="plan-dorametrics"
+$hostingSKU="S1"
+$appInsightsName="appi-dorametrics"
+$serviceName="api-dorametrics"
+$websiteName="app-dorametrics"
+$functionName="fun-dorametrics"
+$administrationEmailAccount="leadro@microsoft.com"
+$fileRoot = "C:\Repos\lsprado\DevOpsMetrics\src"
 $templatesLocation="$fileRoot\DevOpsMetrics.Infrastructure\Templates"
 $error.clear()
 
 $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 $timing = ""
 $timing = -join($timing, "1. Deployment started: ", $stopwatch.Elapsed.TotalSeconds, "`n")
-Write-Host "1. Deployment started: "$stopwatch.Elapsed.TotalSeconds
+Write-Host "1. Deployment started: "$stopwatch.Elapsed.TotalSeconds -ForegroundColor Green
 Write-Host "Parameters:"
 Write-Host "resourceGroupName: $resourceGroupName"
 Write-Host "resourceLocation: $resourceLocation"
@@ -44,18 +45,20 @@ if ($keyVaultName.Length -gt 24)
 }
 
 $timing = -join($timing, "2. Variables created: ", $stopwatch.Elapsed.TotalSeconds, "`n");
-Write-Host "2. Variables created: "$stopwatch.Elapsed.TotalSeconds
+Write-Host "2. Variables created: "$stopwatch.Elapsed.TotalSeconds -ForegroundColor Green
 
 #Resource group
 $resourcegroupDeployment = az group create --location $resourceLocation --name $resourceGroupName
 $timing = -join($timing, "3. Resource group created: ", $stopwatch.Elapsed.TotalSeconds, "`n");
-Write-Host "3. Resource group created: "$stopwatch.Elapsed.TotalSeconds
+Write-Host "3. Resource group created: "$stopwatch.Elapsed.TotalSeconds -ForegroundColor Green
 
 #key vault
 #Get user object id: https://docs.microsoft.com/en-us/cli/azure/ad/user?view=azure-cli-latest#az_ad_user_show
 $userJson = az ad user show --id $administrationEmailAccount
 $user = $userJson | ConvertFrom-Json
-$administratorUserPrincipalId = $user.objectid
+$administratorUserPrincipalId = $user.id
+#$administratorUserPrincipalId = $user.objectid
+
 #Get all deleted key vault names. If it matches, purge it
 #$results = az keyvault list-deleted --subscription 07db7d0b-a6cb-4e58-b07e-e1d541c39f5b
 #$results = $results | ConvertFrom-Json
@@ -81,7 +84,7 @@ $keyvaultDeployment = az deployment group create --resource-group $resourceGroup
 #    $error.clear()
 #}
 $timing = -join($timing, "4. Key vault created:: ", $stopwatch.Elapsed.TotalSeconds, "`n");
-Write-Host "4. Key vault created: "$stopwatch.Elapsed.TotalSeconds
+Write-Host "4. Key vault created: "$stopwatch.Elapsed.TotalSeconds -ForegroundColor Green
 
 #storage
 $storageOutput = az deployment group create --resource-group $resourceGroupName --name $storageName --template-file "$templatesLocation\Storage.json" --parameters storageAccountName=$storageName resourceGroupName=$resourceGroupName
@@ -90,13 +93,13 @@ $storageAccountConnectionString = $storageJSON.properties.outputs.storageAccount
 Write-Host "Setting value storageAccountConnectionString to key vault"
 $keyvaultSecretOutput = az keyvault secret set --vault-name $keyVaultName --name "AppSettings--AzureStorageAccountConfigurationString" --value $storageAccountConnectionString 
 Write-Host "storageAccountAccessKey: "$storageAccountConnectionString
-$timing = -join($timing, "5. Storage created: ", $stopwatch.Elapsed.TotalSeconds, "`n");
-Write-Host "5. Storage created: "$stopwatch.Elapsed.TotalSeconds
+$timing = -join($timing, "5. Storage created: ", $stopwatch.Elapsed.TotalSeconds, "`n"); 
+Write-Host "5. Storage created: "$stopwatch.Elapsed.TotalSeconds -ForegroundColor Green
 
 #hosting
-$hostingOutput = az deployment group create --resource-group $resourceGroupName --name $hostingName --template-file "$templatesLocation\WebHosting.json" --parameters hostingPlanName=$hostingName actionGroupName=$actionGroupName 
+$hostingOutput = az deployment group create --resource-group $resourceGroupName --name $hostingName --template-file "$templatesLocation\WebHosting.json" --parameters hostingPlanName=$hostingName actionGroupName=$actionGroupName hostingPlanSKUName=$hostingSKU
 $timing = -join($timing, "6. Web hosting created: ", $stopwatch.Elapsed.TotalSeconds, "`n");
-Write-Host "6. Web hosting created: "$stopwatch.Elapsed.TotalSeconds
+Write-Host "6. Web hosting created: "$stopwatch.Elapsed.TotalSeconds -ForegroundColor Green
 
 #app insights
 $applicationInsightsOutput = az deployment group create --resource-group $resourceGroupName --name $appInsightsName --template-file "$templatesLocation\ApplicationInsights.json" --parameters applicationInsightsName=$appInsightsName 
@@ -106,7 +109,7 @@ $applicationInsightsInstrumentationKey = $applicationInsightsJSON.properties.out
 #az keyvault secret set --vault-name $keyVaultName --name "$applicationInsightsInstrumentationKeyName" --value $ApplicationInsightsInstrumentationKey #Upload the secret into the key vault
 Write-Host "applicationInsightsInstrumentationKey: "$applicationInsightsInstrumentationKey
 $timing = -join($timing, "7. Application created: ", $stopwatch.Elapsed.TotalSeconds, "`n");
-Write-Host "7. Application insights created: "$stopwatch.Elapsed.TotalSeconds
+Write-Host "7. Application insights created: "$stopwatch.Elapsed.TotalSeconds -ForegroundColor Green
 
 #web service app service
 $webserviceOutput = az deployment group create --resource-group $resourceGroupName --name $serviceName --template-file "$templatesLocation\Website.json" --parameters webSiteName=$serviceName hostingPlanName=$hostingName
@@ -120,7 +123,7 @@ $serviceDeploymentOutput = az webapp deployment source config-zip --resource-gro
 Write-Host "Setting appsettings $appInsightsName connectionString: $applicationInsightsInstrumentationKey"
 $configServiceSetOutput = az webapp config appsettings set --resource-group $resourceGroupName --name $serviceName --settings "APPINSIGHTS_INSTRUMENTATIONKEY=$applicationInsightsInstrumentationKey" "AppSettings:KeyVaultURL=https://$keyVaultName.vault.azure.net/"
 $timing = -join($timing, "8. Web service created: ", $stopwatch.Elapsed.TotalSeconds, "`n");
-Write-Host "8. Web service created: "$stopwatch.Elapsed.TotalSeconds
+Write-Host "8. Web service created: "$stopwatch.Elapsed.TotalSeconds -ForegroundColor Green
 
 #Web site
 $websiteOutput = az deployment group create --resource-group $resourceGroupName --name $webSiteName --template-file "$templatesLocation\Website.json" --parameters webSiteName=$webSiteName hostingPlanName=$hostingName
@@ -128,7 +131,7 @@ $websiteOutput = az deployment group create --resource-group $resourceGroupName 
 Write-Host "Setting appsettings $appInsightsName connectionString: $applicationInsightsInstrumentationKey"
 $configWebSetOutput = az webapp config appsettings set --resource-group $resourceGroupName --name $webSiteName --settings "APPINSIGHTS_INSTRUMENTATIONKEY=$applicationInsightsInstrumentationKey" #--slot production
 $timing = -join($timing, "9. Website created: ", $stopwatch.Elapsed.TotalSeconds, "`n");
-Write-Host "9. Website created: "$stopwatch.Elapsed.TotalSeconds
+Write-Host "9. Website created: "$stopwatch.Elapsed.TotalSeconds -ForegroundColor Green
 
 #function
 $functionOutput = az deployment group create --resource-group $resourceGroupName --name $functionName --template-file "$templatesLocation\function.json" --parameters webSiteName=$functionName hostingPlanName=$hostingName 
@@ -136,10 +139,10 @@ $functionOutput = az deployment group create --resource-group $resourceGroupName
 Write-Host "Setting appsettings $appInsightsName connectionString: $applicationInsightsInstrumentationKey"
 $configFunctionOutput = az webapp config appsettings set --resource-group $resourceGroupName --name $webSiteName --settings "APPINSIGHTS_INSTRUMENTATIONKEY=$applicationInsightsInstrumentationKey" #--slot production
 $timing = -join($timing, "10. Website created: ", $stopwatch.Elapsed.TotalSeconds, "`n");
-Write-Host "10. Website created: "$stopwatch.Elapsed.TotalSeconds
+Write-Host "10. Website created: "$stopwatch.Elapsed.TotalSeconds -ForegroundColor Green
 
 
 $timing = -join($timing, "11. All Done: ", $stopwatch.Elapsed.TotalSeconds, "`n");
-Write-Host "11. All Done: "$stopwatch.Elapsed.TotalSeconds
+Write-Host "11. All Done: "$stopwatch.Elapsed.TotalSeconds -ForegroundColor Green
 Write-Host "Timing: `n$timing"
 Write-Host "Were there errors? (If the next line is blank, then no!) $error"
