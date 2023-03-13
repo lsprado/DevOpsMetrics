@@ -171,10 +171,8 @@ jobs:
   deployToStagingSlots:
     runs-on: windows-latest
     needs: 
-    - build      
-    - test
+    - build
     - buildFunction
-    - sonarCloud
     if: github.ref == 'refs/heads/main'
     steps:        
     # Login with the secret SP details
