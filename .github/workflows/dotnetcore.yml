@@ -7,6 +7,12 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  RG_NAME: rg-dorametrics
+  API_NAME: api-dorametrics
+  APP_NAME: app-dorametrics
+  FUN_NAME: fun-dorametrics
+
 jobs:
 
   build:
@@ -203,24 +209,25 @@ jobs:
         name: functionaltests 
         path: functionaltests
 
-    #Deploy service, website, and function to Azure
+    #Deploy service
     - name: Deploy web service to Azure WebApp
       uses: Azure/webapps-deploy@v2.2.5
       with:
-        app-name: devops-prod-eu-service
+        app-name: $API_NAME
         package: serviceapp
         #slot-name: staging 
     - name: Deploy web service app settings
-      run: az webapp config appsettings set --name "devops-prod-eu-service" --resource-group "devopsmetrics" --settings "AppSettings:AzureDevOpsPatToken=${{ secrets.AzureDevOpsPATToken }}" "AppSettings:GitHubClientId=${{ secrets.GitHubClientId }}" "AppSettings:GitHubClientSecret=${{ secrets.GitHubClientSecret }}"  "AppSettings:AzureStorageAccountConfigurationString=${{ secrets.AzureStorageConnectionString }}" "AppSettings:KeyVaultClientId=${{ secrets.KeyVaultClientId }}" "AppSettings:KeyVaultClientSecret=${{ secrets.KeyVaultClientSecret }}" #--slot "staging" 
+      run: az webapp config appsettings set --name $API_NAME --resource-group $RG_NAME --settings "AppSettings:AzureDevOpsPatToken=${{ secrets.AzureDevOpsPATToken }}" "AppSettings:GitHubClientId=${{ secrets.GitHubClientId }}" "AppSettings:GitHubClientSecret=${{ secrets.GitHubClientSecret }}"  "AppSettings:AzureStorageAccountConfigurationString=${{ secrets.AzureStorageConnectionString }}" "AppSettings:KeyVaultClientId=${{ secrets.KeyVaultClientId }}" "AppSettings:KeyVaultClientSecret=${{ secrets.KeyVaultClientSecret }}" #--slot "staging" 
     
+    #Deploy  website
     - name: Deploy website to Azure WebApp
       uses: Azure/webapps-deploy@v2.2.5
       with:
-        app-name: devops-prod-eu-web
-        package: webapp 
+        app-name: $APP_NAME
+        package: webapp
         #slot-name: staging         
     - name: Deploy website app settings
-      run: az webapp config appsettings set --name devops-prod-eu-web --resource-group "devopsmetrics" --settings "AppSettings:AzureDevOpsPatToken=${{ secrets.AzureDevOpsPATToken }}" "AppSettings:GitHubClientId=${{ secrets.GitHubClientId }}" "AppSettings:GitHubClientSecret=${{ secrets.GitHubClientSecret }}" #--slot "staging"  
+      run: az webapp config appsettings set --name $APP_NAME --resource-group $RG_NAME --settings "AppSettings:AzureDevOpsPatToken=${{ secrets.AzureDevOpsPATToken }}" "AppSettings:GitHubClientId=${{ secrets.GitHubClientId }}" "AppSettings:GitHubClientSecret=${{ secrets.GitHubClientSecret }}" #--slot "staging"  
 
     # Run functional tests on staging slots
     - name: Functional Tests
@@ -240,10 +247,10 @@ jobs:
     - name: Deploy function to Azure WebApp
       uses: Azure/webapps-deploy@v2.2.5
       with:
-        app-name: devops-prod-eu-function
+        app-name: $FUN_NAME
         package: functionapp 
     - name: Deploy function app settings
-      run: az webapp config appsettings set --name "devops-prod-eu-function" --resource-group "devopsmetrics" --settings "AppSettings:AzureDevOpsPatToken=${{ secrets.AzureDevOpsPATToken }}" "AppSettings:GitHubClientId=${{ secrets.GitHubClientId }}" "AppSettings:GitHubClientSecret=${{ secrets.GitHubClientSecret }}" "AppSettings:AzureStorageAccountConfigurationString=${{ secrets.AzureStorageConnectionString }}" "AppSettings:WebServiceURL=https://devops-prod-eu-service.azurewebsites.net/" "AppSettings:KeyVaultClientId=${{ secrets.KeyVaultClientId }}" "AppSettings:KeyVaultClientSecret=${{ secrets.KeyVaultClientSecret }}"  "AppSettings:KeyVaultURL=https://devops-prod-eu-vault.vault.azure.net/" "AzureStorageAccountContainerAzureDevOpsBuilds=DevOpsAzureDevOpsBuilds" "AppSettings:AzureStorageAccountContainerAzureDevOpsPRs=DevOpsAzureDevOpsPRs" "AppSettings:AzureStorageAccountContainerAzureDevOpsPRCommits=DevOpsAzureDevOpsPRCommits" "AppSettings:AzureStorageAccountContainerAzureDevOpsSettings=DevOpsAzureDevOpsSettings" "AppSettings:AzureStorageAccountContainerGitHubRuns=DevOpsGitHubRuns" "AppSettings:AzureStorageAccountContainerGitHubPRs=DevOpsGitHubPRs" "AppSettings:AzureStorageAccountContainerGitHubPRCommits=DevOpsGitHubPRCommits" "AppSettings:AzureStorageAccountContainerGitHubSettings=DevOpsGitHubSettings" "AppSettings:AzureStorageAccountContainerMTTR=DevOpsMTTR" "AppSettings:AzureStorageAccountContainerChangeFailureRate=DevOpsChangeFailureRate" "AppSettings:AzureStorageAccountContainerTableLog=DevOpsLog"
+      run: az webapp config appsettings set --name $FUN_NAME --resource-group $RG_NAME --settings "AppSettings:AzureDevOpsPatToken=${{ secrets.AzureDevOpsPATToken }}" "AppSettings:GitHubClientId=${{ secrets.GitHubClientId }}" "AppSettings:GitHubClientSecret=${{ secrets.GitHubClientSecret }}" "AppSettings:AzureStorageAccountConfigurationString=${{ secrets.AzureStorageConnectionString }}" "AppSettings:WebServiceURL=https://devops-prod-eu-service.azurewebsites.net/" "AppSettings:KeyVaultClientId=${{ secrets.KeyVaultClientId }}" "AppSettings:KeyVaultClientSecret=${{ secrets.KeyVaultClientSecret }}"  "AppSettings:KeyVaultURL=https://devops-prod-eu-vault.vault.azure.net/" "AzureStorageAccountContainerAzureDevOpsBuilds=DevOpsAzureDevOpsBuilds" "AppSettings:AzureStorageAccountContainerAzureDevOpsPRs=DevOpsAzureDevOpsPRs" "AppSettings:AzureStorageAccountContainerAzureDevOpsPRCommits=DevOpsAzureDevOpsPRCommits" "AppSettings:AzureStorageAccountContainerAzureDevOpsSettings=DevOpsAzureDevOpsSettings" "AppSettings:AzureStorageAccountContainerGitHubRuns=DevOpsGitHubRuns" "AppSettings:AzureStorageAccountContainerGitHubPRs=DevOpsGitHubPRs" "AppSettings:AzureStorageAccountContainerGitHubPRCommits=DevOpsGitHubPRCommits" "AppSettings:AzureStorageAccountContainerGitHubSettings=DevOpsGitHubSettings" "AppSettings:AzureStorageAccountContainerMTTR=DevOpsMTTR" "AppSettings:AzureStorageAccountContainerChangeFailureRate=DevOpsChangeFailureRate" "AppSettings:AzureStorageAccountContainerTableLog=DevOpsLog"
     - name: Display GitVersion outputs
       run: |
         echo "Version: ${{ needs.build.outputs.Version }}" 
